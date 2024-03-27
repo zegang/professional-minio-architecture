@@ -392,7 +392,7 @@ XL Storage实现的文件读取（代码位于文件minio/cmd/xl-storage.go)：
 3. 以只读方式打开文件；
 4. 获取文件属性；
 5. 判断是否是常规文件，不然seek操作是未定义的行为；
-6. 如果没有指定位腐化（bitrot）验证器，直接进行文件读取：`file.ReadAt(buffer, offset)`，返回读取的长度和可能的错误;
+6. 如果没有指定位衰减（bitrot）验证器，直接进行文件读取：`file.ReadAt(buffer, offset)`，返回读取的长度和可能的错误;
 7. 否则，将读取文件内容并通过指定的算法（哈希算法）进行计算，并将结果与参数传入的`verifier.sum`比对。相同则数据正确，不同则返回错误`errFileCorrupt`。
 ```
 // ReadFile reads exactly len(buf) bytes into buf. It returns the
@@ -495,7 +495,7 @@ func (s *xlStorage) ReadFile(ctx context.Context, volume string, path string, of
 	return int64(len(buffer)), nil
 }
 ```
-上面位腐化（bitrot）验证器定义于文件`minio/cmd/bitrot.go`中。
+上面位衰减（bitrot）验证器定义于文件`minio/cmd/bitrot.go`中。
 ```
 // BitrotVerifier can be used to verify protected data.
 type BitrotVerifier struct {
@@ -524,4 +524,44 @@ const (
 const (
 	DefaultBitrotAlgorithm = HighwayHash256S
 )
+```
+类型`BitrotAlgorithm`的`New`方法位于文件`minio/cmd/bitrot.go`中，其返回值是Go中代表哈希算法的`hash.Hash`接口。该方法将创建特定的哈希算法并返回。
+```
+import (
+...
+	"github.com/minio/highwayhash"
+	"github.com/minio/minio/internal/hash/sha256"
+	"golang.org/x/crypto/blake2b"
+...
+)
+
+// magic HH-256 key as HH-256 hash of the first 100 decimals of π as utf-8 string with a zero key.
+var magicHighwayHash256Key = []byte("\x4b\xe7\x34\xfa\x8e\x23\x8a\xcd\x26\x3e\x83\xe6\xbb\x96\x85\x52\x04\x0f\x93\x5d\xa3\x9f\x44\x14\x97\xe0\x9d\x13\x22\xde\x36\xa0")
+
+var bitrotAlgorithms = map[BitrotAlgorithm]string{
+	SHA256:          "sha256",
+	BLAKE2b512:      "blake2b",
+	HighwayHash256:  "highwayhash256",
+	HighwayHash256S: "highwayhash256S",
+}
+
+// New returns a new hash.Hash calculating the given bitrot algorithm.
+func (a BitrotAlgorithm) New() hash.Hash {
+	switch a {
+	case SHA256:
+		return sha256.New()
+	case BLAKE2b512:
+		b2, _ := blake2b.New512(nil) // New512 never returns an error if the key is nil
+		return b2
+	case HighwayHash256:
+		hh, _ := highwayhash.New(magicHighwayHash256Key) // New will never return error since key is 256 bit
+		return hh
+	case HighwayHash256S:
+		hh, _ := highwayhash.New(magicHighwayHash256Key) // New will never return error since key is 256 bit
+		return hh
+	default:
+		logger.CriticalIf(GlobalContext, errors.New("Unsupported bitrot algorithm"))
+		return nil
+	}
+}
 ```
