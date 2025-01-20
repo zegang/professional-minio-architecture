@@ -305,7 +305,7 @@ type formatMetaV1 struct {
 ```
 
 ### 卷操作
-现在来看看卷的初始化，接口是`MakeVol(ctx context.Context, volume string) (err error)`。XLStorage的实现是在驱动器根目录下创建给定名字的子目录。
+现在来看看卷的初始化，接口是`MakeVol(ctx context.Context, volume string) (err error)`.XLStorage的实现是在驱动器根目录下创建给定名字的子目录。
 ```
 func (s *xlStorage) MakeVolBulk(ctx context.Context, volumes ...string) error {
 	for _, volume := range volumes {

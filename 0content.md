@@ -10,6 +10,7 @@
 ## 2.2 [一切的开端](chapter2-s2-start.md)
 ## 2.3 [命令的执行](chapter2-s3-cmdhandle.md)
 ## 2.4 [基础数据结构](chapter2-s4-foundationstructs.md)
+## 2.5 [多存储路径启动](chapter2-s5-disksstart.md)
 
 # 第三章 分布式存储
 ## 3.1 [节点与设备的拓扑结构](chapter3-s1-topo.md)
