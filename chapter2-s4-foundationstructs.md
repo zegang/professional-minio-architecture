@@ -1,9 +1,54 @@
 ## 2.4 基础数据结构
 
-对象存储系统有很多基础的概念，需要有响应的数据结构抽象实现。本节将展示Minio对象存储中的基础数据结构。
+对象存储系统有很多基础的概念，需要有响应的数据结构抽象实现。本节将展示Minio对象存储中的基础数据结构。并将展示一些数据结构(`minio server /miniodata/data`)的实例状态。
 
 ### 2.4.1 对象
 
+
+### 2.4.2 端点
+
+端点(Endpoint）存储了服务点或实例的详细信息。
+```
+// Endpoint - any type of endpoint.
+type Endpoint struct {
+	*url.URL
+	IsLocal bool
+
+	PoolIdx, SetIdx, DiskIdx int
+}
+```
+![A screenshot of endpoint instance](images/c2-s4-endpoint-instance.png)
+
+一个储存池中的端点由`PoolEndpoints`类型表示。
+```
+// PoolEndpoints represent endpoints in a given pool
+// along with its setCount and setDriveCount.
+type PoolEndpoints struct {
+	// indicates if endpoints are provided in non-ellipses style
+	Legacy       bool
+	SetCount     int
+	DrivesPerSet int
+	Endpoints    Endpoints
+	CmdLine      string
+	Platform     string
+}
+
+// EndpointServerPools - list of list of endpoints
+type EndpointServerPools []PoolEndpoints
+```
+### 2.4.2 节点
+集群中的节点:
+```
+// Node holds information about a node in this cluster
+type Node struct {
+	*url.URL
+	Pools    []int
+	IsLocal  bool
+	GridHost string
+}
+```
+当前集群只有一个当前机器节点。
+![A screenshot of nodes](images/c2-s4-cluster-nodes-instance.png)
 
 ### 2.4.2 事件
 
