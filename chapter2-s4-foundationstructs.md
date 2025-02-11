@@ -4,6 +4,42 @@
 
 ### 2.4.1 对象
 
+对象抽象API层。
+```
+// ObjectLayer implements primitives for object API layer.
+type ObjectLayer interface {
+	// Locking operations on object.
+	NewNSLock(bucket string, objects ...string) RWLocker
+	...
+	// Bucket operations.
+	MakeBucket(ctx context.Context, bucket string, opts MakeBucketOptions) error
+	GetBucketInfo(ctx context.Context, bucket string, opts BucketOptions) (bucketInfo BucketInfo, err error)
+	ListBuckets(ctx context.Context, opts BucketOptions) (buckets []BucketInfo, err error)
+	DeleteBucket(ctx context.Context, bucket string, opts DeleteBucketOptions) error
+	ListObjects(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (result ListObjectsInfo, err error)
+	ListObjectsV2(ctx context.Context, bucket, prefix, continuationToken, delimiter string, maxKeys int, fetchOwner bool, startAfter string) (result ListObjectsV2Info, err error)
+	ListObjectVersions(ctx context.Context, bucket, prefix, marker, versionMarker, delimiter string, maxKeys int) (result ListObjectVersionsInfo, err error)
+	// Walk lists all objects including versions, delete markers.
+	Walk(ctx context.Context, bucket, prefix string, results chan<- itemOrErr[ObjectInfo], opts WalkOptions) error
+
+	// Object operations.
+
+	// GetObjectNInfo returns a GetObjectReader that satisfies the
+	// ReadCloser interface. The Close method runs any cleanup
+	// functions, so it must always be called after reading till EOF
+	//
+	// IMPORTANTLY, when implementations return err != nil, this
+	// function MUST NOT return a non-nil ReadCloser.
+	GetObjectNInfo(ctx context.Context, bucket, object string, rs *HTTPRangeSpec, h http.Header, opts ObjectOptions) (reader *GetObjectReader, err error)
+	GetObjectInfo(ctx context.Context, bucket, object string, opts ObjectOptions) (objInfo ObjectInfo, err error)
+	PutObject(ctx context.Context, bucket, object string, data *PutObjReader, opts ObjectOptions) (objInfo ObjectInfo, err error)
+	CopyObject(ctx context.Context, srcBucket, srcObject, destBucket, destObject string, srcInfo ObjectInfo, srcOpts, dstOpts ObjectOptions) (objInfo ObjectInfo, err error)
+	DeleteObject(ctx context.Context, bucket, object string, opts ObjectOptions) (ObjectInfo, error)
+	DeleteObjects(ctx context.Context, bucket string, objects []ObjectToDelete, opts ObjectOptions) ([]DeletedObject, []error)
+	TransitionObject(ctx context.Context, bucket, object string, opts ObjectOptions) error
+	RestoreTransitionedObject(ctx context.Context, bucket, object string, opts ObjectOptions) error
+	...
+```
 
 ### 2.4.2 端点
 
@@ -36,7 +72,7 @@ type PoolEndpoints struct {
 // EndpointServerPools - list of list of endpoints
 type EndpointServerPools []PoolEndpoints
 ```
-### 2.4.2 节点
+### 2.4.3 节点
 集群中的节点:
 ```
 // Node holds information about a node in this cluster
@@ -50,7 +86,32 @@ type Node struct {
 当前集群只有一个当前机器节点。
 ![A screenshot of nodes](images/c2-s4-cluster-nodes-instance.png)
 
-### 2.4.2 事件
+### 2.4.4 配置类型
+
+很明显我们所使用的启动命令是：单驱动器的配置类型（ErasureSDSetupType）
+```
+// SetupType - enum for setup type.
+type SetupType int
+
+const (
+	// UnknownSetupType - starts with unknown setup type.
+	UnknownSetupType SetupType = iota
+
+	// FSSetupType - FS setup type enum.
+	FSSetupType
+
+	// ErasureSDSetupType - Erasure single drive setup enum.
+	ErasureSDSetupType
+
+	// ErasureSetupType - Erasure setup type enum.
+	ErasureSetupType
+
+	// DistErasureSetupType - Distributed Erasure setup type enum.
+	DistErasureSetupType
+)
+```
+
+### 2.4.5 事件
 
 事件（Event）是用来通知特定行为，动作或状态的发生，需要呈现时间，地点，主角已经相关的状态信息。Minio将其抽象为`Event`类型（位于文件`/minio/internal/event/event.go`中）：
 ```
